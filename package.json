@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "description": "AFX 动画工坊 — 前端动画编辑器（Electron 桌面版）",
   "main": "main.js",
-  "author": "AFX",
+  "author": {
+    "name": "AFX",
+    "email": "kadfdas@users.noreply.github.com"
+  },
   "license": "MIT",
   "scripts": {
     "start": "electron .",
