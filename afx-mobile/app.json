@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "AFX动画工坊",
+    "slug": "afx-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#16181d",
+      "resizeMode": "contain",
+      "image": "./assets/splash.png"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.afx.animationstudio",
+      "buildNumber": "1"
+    },
+    "android": {
+      "package": "com.afx.animationstudio",
+      "versionCode": 1
+    },
+    "extra": {
+      "eas": {
+        "projectId": "afx-mobile"
+      }
+    }
+  }
+}

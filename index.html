@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AFX 动画工坊 — 前端动画框架</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ===================== 顶部：播放控制栏 + 全局设置 ===================== -->
+  <header id="topbar">
+    <div class="logo">AFX <span>动画工坊</span></div>
+
+    <div class="transport">
+      <button id="btnPlay" class="tbtn" title="播放">播放</button>
+      <button id="btnPause" class="tbtn" title="暂停">暂停</button>
+      <button id="btnStop" class="tbtn" title="停止">停止</button>
+      <span id="timeLabel" class="time-label">0.0 / 8.0s</span>
+    </div>
+
+    <div class="global-settings">
+      <label>宽 <input id="setWidth" type="number" min="200" step="10" /></label>
+      <label>高 <input id="setHeight" type="number" min="200" step="10" /></label>
+      <label>时长(s) <input id="setDuration" type="number" min="1" step="0.5" /></label>
+      <label>背景 <input id="setBg" type="color" /></label>
+    </div>
+
+    <div class="file-ops">
+      <button id="btnSave" class="obtn">保存 JSON</button>
+      <button id="btnLoad" class="obtn">导入 JSON</button>
+      <button id="btnNew" class="obtn">新建</button>
+      <button id="btnPreview" class="obtn primary">预览模式</button>
+      <input type="file" id="fileLoad" accept=".json,application/json" hidden />
+    </div>
+  </header>
+
+  <!-- ===================== 中部工作区 ===================== -->
+  <main id="workspace">
+
+    <!-- 左侧：元素列表 + 添加按钮 -->
+    <aside id="leftPanel" class="panel">
+      <div class="panel-title">元素</div>
+      <div id="addButtons">
+        <button class="add-btn" data-type="text">＋ 文字</button>
+        <button class="add-btn" data-type="image">＋ 图片</button>
+        <button class="add-btn" data-type="video">＋ 视频</button>
+        <button class="add-btn" data-type="audio">＋ 音频</button>
+        <button class="add-btn" data-type="svg">＋ SVG 图形</button>
+        <button class="add-btn" data-type="character">＋ 角色</button>
+      </div>
+      <div id="elementList"></div>
+      <!-- 隐藏的媒体文件选择器 -->
+      <input type="file" id="fileMedia" hidden />
+    </aside>
+
+    <!-- 中间：画布 -->
+    <section id="center">
+      <div id="stageWrap">
+        <div id="stage"></div>
+      </div>
+    </section>
+
+    <!-- 右侧：属性 / AI 助手 / 插件 标签面板 -->
+    <aside id="rightPanel" class="panel">
+      <div class="panel-tabs" id="panelTabs">
+        <button class="ptab active" data-tab="propPanel">属性</button>
+        <button class="ptab" data-tab="aiPanel">AI 助手</button>
+        <button class="ptab" data-tab="pluginPanel">插件</button>
+      </div>
+      <div id="propPanel" class="tab-page active"></div>
+      <div id="aiPanel" class="tab-page"></div>
+      <div id="pluginPanel" class="tab-page"></div>
+    </aside>
+  </main>
+
+  <!-- ===================== 底部：时间轴轨道 ===================== -->
+  <footer id="bottomPanel">
+    <div id="tlToolbar">
+      <span class="tl-title">时间轴</span>
+      <label class="tl-zoom">缩放
+        <input id="tlZoom" type="range" min="40" max="220" step="10" value="90" />
+      </label>
+      <span class="tl-hint">提示：拖动轨道条调整时间段 / 拖动边缘调整长度 / 点击轨道跳转时间</span>
+    </div>
+    <div id="timeline">
+      <div id="tlLabels"></div>
+      <div id="tlTracks">
+        <div id="tlContent">
+          <div id="tlRuler"></div>
+          <div id="tlRows"></div>
+          <div id="tlPlayhead"><div class="ph-cap"></div></div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 预览模式退出按钮 -->
+  <button id="btnExitPreview" hidden>退出预览 (Esc)</button>
+
+  <script src="js/easing.js"></script>
+  <script src="js/scene.js"></script>
+  <script src="js/eventbus.js"></script>
+  <script src="js/loader.js"></script>
+  <script src="js/character.js"></script>
+  <script src="js/environment.js"></script>
+  <script src="js/plugin-system.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/panels.js"></script>
+  <script src="js/timelineui.js"></script>
+  <script src="js/ai-panel.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/electron-integration.js"></script>
+  <script src="js/updater-ui.js"></script>
+  <script src="js/cloud-sync.js"></script>
+  <script src="js/cloud-sync-ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "name": "afx-core",
+  "version": "1.0.0",
+  "description": "AFX 动画工坊 — 桌面端和移动端共享的核心逻辑",
+  "main": "index.js",
+  "dependencies": {}
+}

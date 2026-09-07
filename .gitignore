@@ -1,0 +1,19 @@
+# 依赖
+node_modules/
+afx-mobile/node_modules/
+
+# 打包产物
+dist/
+dist2/
+*.blockmap
+
+# 云服务器数据
+server/data/
+server/.env
+
+# 系统文件
+Thumbs.db
+.DS_Store
+
+# 编辑器
+.trae/

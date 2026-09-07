@@ -1,0 +1,17 @@
+{
+  "name": "afx-cloud-server",
+  "version": "1.0.0",
+  "description": "AFX 动画工坊 — 云端同步后端（零原生编译依赖）",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.0"
+  }
+}

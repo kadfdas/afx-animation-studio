@@ -1,0 +1,43 @@
+name: Build & Release
+
+# 触发条件：推送 v* 标签时自动构建发布；也可在 Actions 页面手动触发
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+# 关键：允许 GITHUB_TOKEN 创建 Release 和上传产物
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: win
+            arch: --x64
+          - os: macos-latest
+            target: mac
+            arch: --x64 --arm64
+          - os: ubuntu-latest
+            target: linux
+            arch: --x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      # electron-builder 原生发布：
+      # 自动创建 GitHub Release、上传安装包 + latest.yml（在线更新元数据）
+      - name: Build & Publish
+        run: npx electron-builder --${{ matrix.target }} ${{ matrix.arch }} --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
