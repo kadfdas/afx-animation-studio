@@ -67,7 +67,7 @@
       "shortcutName": "AFX动画工坊"
     },
     "portable": {
-      "artifactName": "${productName}-${version}-portable.${ext}"
+      "artifactName": "${name}-${version}-portable.${ext}"
     },
     "mac": {
       "target": [
@@ -89,10 +89,10 @@
       "category": "public.app-category.video-graphics-app",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
-      "artifactName": "${productName}-${version}-${arch}.${ext}"
+      "artifactName": "${name}-${version}-${arch}.${ext}"
     },
     "dmg": {
-      "title": "${productName} ${version}",
+      "title": "AFX Animation Studio ${version}",
       "contents": [
         {
           "x": 130,
