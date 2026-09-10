@@ -1,6 +1,6 @@
 {
   "name": "afx-animation-studio",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "AFX 动画工坊 — 前端动画编辑器（Electron 桌面版）",
   "main": "main.js",
   "author": {
