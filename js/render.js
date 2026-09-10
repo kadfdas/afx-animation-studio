@@ -41,6 +41,18 @@ window.AFX = window.AFX || {};
       y += vec[1] * mv.distance * offset;
     }
 
+    // ---- 角色行走/跑动自动位移 ----
+    // 当角色状态为 walk/run 且未启用移动动画时，按朝向自动移动
+    if (el.type === 'character' && el.char && !(mv && mv.enabled)) {
+      const cs = AFX.charStateAt(el, t);
+      if (cs.state === 'walk' || cs.state === 'run') {
+        const vec = AFX.DIRECTIONS[cs.direction] || [1, 0];
+        const pxPerSec = (cs.state === 'run' ? 90 : 45) * (el.char.speed || 1);
+        x += vec[0] * pxPerSec * t;
+        y += vec[1] * pxPerSec * t;
+      }
+    }
+
     // ---- 缩放动画（尺寸 A → B）----
     const sc = a.scale;
     if (sc && sc.enabled) {

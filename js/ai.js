@@ -364,6 +364,14 @@ window.AFX = window.AFX || {};
         has(t, ['效果', '特效', '功能', '粒子', '动画', '氛围', ''])) return 'feature';
     if (has(t, ['紧张', '激烈', '刺激', '燃', '氛围', '节奏', '建议', '编排', '安排', '推荐', '轻松', '平静', '舒缓'])) return 'plan';
     if (has(t, ['台词', '说话', '气泡', '说一句', '喊', '感叹', '生气', '愤怒', '开心', '高兴', '伤心', '难过', '惊讶', '害怕', '委屈', '兴奋'])) return 'dialogue';
+    /* === 新增：直接操作意图 === */
+    if (has(t, ['向右', '往右', '右走', '右移', 'move right', '向左走', '往左', '左移']) ||
+        has(t, ['走', '跑', '飞', '游泳', '坐下', '站']) && has(t, ['让', '要', '叫', '使', '给', '去', '开始', '来']))
+      return 'action';
+    if (has(t, ['背景', '颜色', '大小', '尺寸', '时长', '宽度', '高度', '场景']))
+      return 'action';
+    if (has(t, ['删除', '去掉', '移除', '清掉', '不要']))
+      return 'action';
     return 'chat';
   }
 
@@ -421,7 +429,137 @@ window.AFX = window.AFX || {};
     };
   }
 
-  /* ==================== 本地大脑：编排建议 ==================== */
+  /* ==================== 本地大脑：直接操作（action） ==================== */
+  // 解析简单的动作指令，返回 ops 数组（可直接 applyOps）
+  function makeAction(text) {
+    const scene = S().scene;
+    const t = text.toLowerCase();
+    const chars = scene.elements.filter(e => e.type === 'character');
+    const target = chars.find(e => e.id === S().sel) || chars[0];
+    if (!target && !has(t, ['添加', '新增', '加一个', '创建'])) return null;
+
+    const ops = [];
+    const tt = +S().t.toFixed(2);
+
+    // --- 角色状态切换 ---
+    if (has(t, ['坐下', '坐下来', 'sit'])) ops.push({ type: 'setCharState', elId: target && target.id, state: 'sit' });
+    else if (has(t, ['站起来', '站立', '站好', 'idle'])) ops.push({ type: 'setCharState', elId: target && target.id, state: 'idle' });
+    else if (has(t, ['飞起来', '起飞', '飞行', '飞', 'fly']) && !has(t, ['飞机'])) ops.push({ type: 'setCharState', elId: target && target.id, state: 'fly' });
+    else if (has(t, ['游泳', '下水', '潜入', 'swim'])) ops.push({ type: 'setCharState', elId: target && target.id, state: 'swim' });
+    else if (has(t, ['跑', 'run']) || has(t, ['快', '加速']) && has(t, ['走', '跑', '动'])) ops.push({ type: 'setCharState', elId: target && target.id, state: 'run' });
+    else if (has(t, ['走', 'walk']) || has(t, ['慢', '减速'])) ops.push({ type: 'setCharState', elId: target && target.id, state: 'walk' });
+
+    // --- 方向控制 ---
+    if (has(t, ['向右', '往右', '右走', '右移', 'right'])) ops.push({ type: 'setCharDirection', elId: target && target.id, direction: 'right' });
+    else if (has(t, ['向左', '往左', '左走', '左移', 'left'])) ops.push({ type: 'setCharDirection', elId: target && target.id, direction: 'left' });
+    else if (has(t, ['向上', '往上', 'up'])) ops.push({ type: 'setCharDirection', elId: target && target.id, direction: 'up' });
+    else if (has(t, ['向下', '往下', 'down'])) ops.push({ type: 'setCharDirection', elId: target && target.id, direction: 'down' });
+
+    // --- 速度控制 ---
+    const speedMatch = t.match(/(?:速度|speed)[^\d]*(\d+(?:\.\d+)?)/);
+    if (speedMatch) ops.push({ type: 'setCharSpeed', elId: target && target.id, speed: parseFloat(speedMatch[1]) });
+
+    // --- 背景颜色 ---
+    const bgColors = { 红: '#e74c3c', 粉: '#fd79a8', 蓝: '#74b9ff', 绿: '#55efc4', 黄: '#ffeaa7', 紫: '#a29bfe', 白: '#ffffff', 黑: '#2d3436', 天蓝: '#a3d5f7', 夜: '#1a1a2e', 森林: '#27ae60', 夕阳: '#e17055' };
+    for (const [w, c] of Object.entries(bgColors)) {
+      if (has(t, ['背景']) && t.includes(w)) { ops.push({ type: 'setSceneMeta', background: c }); break; }
+    }
+
+    // --- 场景时长 ---
+    const durMatch = t.match(/(?:时长|duration|时间)[^\d]*(\d+(?:\.\d+)?)/);
+    if (durMatch) ops.push({ type: 'setSceneMeta', duration: parseFloat(durMatch[1]) });
+
+    // --- 删除元素 ---
+    if (has(t, ['删除', '去掉', '移除', '清掉', '不要'])) {
+      if (target && !has(t, ['背景', '颜色', '时长', '场景'])) ops.push({ type: 'deleteElement', elId: target.id });
+    }
+
+    // --- 添加角色 ---
+    if (has(t, ['添加', '新增', '加一个', '创建']) && has(t, ['角色', '人物', '人', '勇士', '英雄', '动物'])) {
+      ops.push({ type: 'addElement', elementType: 'character', name: '新角色', x: 200, y: 300, state: 'idle', direction: 'right' });
+    }
+
+    // --- 移动动画配置 ---
+    const distMatch = t.match(/(?:移动|距离|走|跑)[^\d]*(\d+)/);
+    if (distMatch && target) {
+      ops.push({ type: 'setMove', elId: target.id, enabled: true, distance: parseInt(distMatch[1]) });
+    }
+
+    return ops.length ? ops : null;
+  }
+
+  /* ==================== LLM 自主操作生成 ==================== */
+  // 当本地解析失败时，用大模型理解用户意图并生成 ops
+  async function llmGenerateOps(text, ui) {
+    if (!ai.endpoint.url) {
+      // 未配置大模型：尝试本地解析
+      const ops = makeAction(text);
+      if (ops) {
+        applyOps(ops);
+        return true;
+      }
+      return false;
+    }
+
+    const ctx = ai.contextSnapshot();
+    const sysPrompt =
+      '你是 AFX 动画工坊的 AI 导演助手。用户会用自然语言描述想要的效果，你需要将其转换为 JSON 操作序列（ops 数组），直接修改场景。\n' +
+      '可用操作类型：\n' +
+      '1. setCharState: {type:"setCharState", elId(可选), state:"idle|sit|walk|run|fly|swim"}\n' +
+      '2. setCharDirection: {type:"setCharDirection", elId(可选), direction:"right|left|up|down|upRight|upLeft|downRight|downLeft"}\n' +
+      '3. setCharSpeed: {type:"setCharSpeed", elId(可选), speed:1.0}\n' +
+      '4. setCharRace: {type:"setCharRace", elId(可选), race:"human|bird|fish"}\n' +
+      '5. setMove: {type:"setMove", elId(可选), enabled:true, direction:"right", distance:200, duration:3, delay:0, easing:"linear"}\n' +
+      '6. setElementPos: {type:"setElementPos", elId(可选), x:100, y:200}\n' +
+      '7. setElementSize: {type:"setElementSize", elId(可选), width:120, height:220}\n' +
+      '8. setElementOpacity: {type:"setElementOpacity", elId(可选), opacity:0.5}\n' +
+      '9. setElementRotation: {type:"setElementRotation", elId(可选), rotation:45}\n' +
+      '10. setElementColor: {type:"setElementColor", elId(可选), skin:"#ffd9b3", shirt:"#4f9cff", pants:"#34495e"}\n' +
+      '11. setSceneMeta: {type:"setSceneMeta", duration:8, width:960, height:540, background:"#ffffff"}\n' +
+      '12. addElement: {type:"addElement", elementType:"character|text|svg|image", name:"名字", x:100, y:200, state:"walk", direction:"right", text:"文字内容"}\n' +
+      '13. deleteElement: {type:"deleteElement", elId:"xxx"}\n' +
+      '14. addCharCue: {type:"addCharCue", elId:"xxx", t:3.0, state:"run", direction:"left"}\n' +
+      '15. addBubble: {type:"addBubble", text:"台词", x:100, y:50, start:0, end:3, color:"#2d3436"}\n' +
+      '16. setWind: {type:"setWind", patch:{enabled:true, volume:0.5, gustiness:0.5, linkSway:true}}\n' +
+      '17. mulSway: {type:"mulSway", value:1.5}\n' +
+      '18. setBg: {type:"setBg", color:"#3d84b8"}\n\n' +
+      '规则：\n' +
+      '- 只输出 JSON 数组，不要其他文字\n' +
+      '- elId 省略时自动选择当前选中的角色，或第一个角色\n' +
+      '- 颜色用 hex 格式 #rrggbb\n' +
+      '- 时间单位为秒，距离单位为像素\n' +
+      '- 如果用户请求的是特效（下雨/下雪/粒子等），输出 [] 并在 reply 字段说明\n';
+
+    ui.progress('正在理解你的需求…');
+    const reply = await ai.chat([
+      { role: 'system', content: sysPrompt },
+      { role: 'user', content: '场景上下文：' + JSON.stringify(ctx) + '\n用户请求：' + text }
+    ], 500);
+
+    if (!reply) {
+      // LLM 失败，尝试本地解析
+      const ops = makeAction(text);
+      if (ops) { applyOps(ops); return true; }
+      return false;
+    }
+
+    // 尝试从回复中提取 JSON 数组
+    let ops = null;
+    try {
+      const m = reply.match(/\[[\s\S]*\]/);
+      if (m) ops = JSON.parse(m[0]);
+    } catch (_) {}
+
+    if (ops && Array.isArray(ops) && ops.length > 0) {
+      applyOps(ops);
+      ui.aiMsg('✅ 已执行：' + text + '\n（' + ops.length + ' 个操作已应用）');
+      return true;
+    }
+
+    // 非操作类回复，直接展示
+    ui.aiMsg(reply);
+    return true;
+  }
   function makePlan(text) {
     const scene = S().scene;
     const relax = text.includes('轻松') || text.includes('平静') || text.includes('舒缓');
@@ -884,6 +1022,109 @@ update(dt){ const c=this.ctx; const g=c.fxCtx; if(!g) return; const s=c.scene.me
           scene.meta.background = op.color;
           break;
         }
+        /* ============ 扩展操作：直接控制角色 ============ */
+        case 'setCharState': {
+          const el = op.elId ? scene.elements.find(e => e.id === op.elId) : scene.elements.find(e => e.type === 'character');
+          if (el && el.char) el.char.state = op.state;
+          break;
+        }
+        case 'setCharDirection': {
+          const el = op.elId ? scene.elements.find(e => e.id === op.elId) : scene.elements.find(e => e.type === 'character');
+          if (el && el.char) el.char.direction = op.direction;
+          break;
+        }
+        case 'setCharSpeed': {
+          const el = op.elId ? scene.elements.find(e => e.id === op.elId) : scene.elements.find(e => e.type === 'character');
+          if (el && el.char) el.char.speed = Math.max(0.1, op.speed);
+          break;
+        }
+        case 'setCharRace': {
+          const el = op.elId ? scene.elements.find(e => e.id === op.elId) : scene.elements.find(e => e.type === 'character');
+          if (el && el.char) el.char.race = op.race;
+          break;
+        }
+        /* ============ 扩展操作：元素控制 ============ */
+        case 'setMove': {
+          const el = op.elId ? scene.elements.find(e => e.id === op.elId) : scene.elements.find(e => e.type === 'character');
+          if (el) {
+            if (op.enabled != null) el.animations.move.enabled = op.enabled;
+            if (op.direction) el.animations.move.direction = op.direction;
+            if (op.distance != null) el.animations.move.distance = op.distance;
+            if (op.duration != null) el.animations.move.duration = op.duration;
+            if (op.delay != null) el.animations.move.delay = op.delay;
+            if (op.easing) el.animations.move.easing = op.easing;
+          }
+          break;
+        }
+        case 'setElementPos': {
+          const el = op.elId ? scene.elements.find(e => e.id === op.elId) : scene.elements.find(e => e.type === 'character');
+          if (el) {
+            if (op.x != null) el.style.x = op.x;
+            if (op.y != null) el.style.y = op.y;
+          }
+          break;
+        }
+        case 'setElementSize': {
+          const el = op.elId ? scene.elements.find(e => e.id === op.elId) : scene.elements.find(e => e.type === 'character');
+          if (el) {
+            if (op.width != null) el.style.width = Math.max(4, op.width);
+            if (op.height != null) el.style.height = Math.max(4, op.height);
+          }
+          break;
+        }
+        case 'setElementOpacity': {
+          const el = op.elId ? scene.elements.find(e => e.id === op.elId) : scene.elements.find(e => e.type === 'character');
+          if (el) el.style.opacity = Math.min(1, Math.max(0, op.opacity));
+          break;
+        }
+        case 'setElementRotation': {
+          const el = op.elId ? scene.elements.find(e => e.id === op.elId) : scene.elements.find(e => e.type === 'character');
+          if (el) el.style.rotation = op.rotation;
+          break;
+        }
+        case 'setElementColor': {
+          const el = op.elId ? scene.elements.find(e => e.id === op.elId) : scene.elements.find(e => e.type === 'character');
+          if (el && el.char) {
+            if (op.skin) el.char.skin = op.skin;
+            if (op.shirt) el.char.shirt = op.shirt;
+            if (op.pants) el.char.pants = op.pants;
+          }
+          if (el && el.type === 'text' && op.color) el.content.color = op.color;
+          break;
+        }
+        /* ============ 扩展操作：场景控制 ============ */
+        case 'setSceneMeta': {
+          if (op.duration != null) scene.meta.duration = Math.max(1, op.duration);
+          if (op.width != null) scene.meta.width = Math.max(200, op.width);
+          if (op.height != null) scene.meta.height = Math.max(200, op.height);
+          if (op.background != null) scene.meta.background = op.background;
+          break;
+        }
+        case 'addElement': {
+          const el = AFX.createElement(op.elementType || 'character', scene);
+          if (op.name) el.name = op.name;
+          if (op.x != null) el.style.x = op.x;
+          if (op.y != null) el.style.y = op.y;
+          if (op.width != null) el.style.width = op.width;
+          if (op.height != null) el.style.height = op.height;
+          if (op.state && el.char) el.char.state = op.state;
+          if (op.direction && el.char) el.char.direction = op.direction;
+          if (op.text != null && el.type === 'text') el.content.text = op.text;
+          scene.elements.push(el);
+          break;
+        }
+        case 'deleteElement': {
+          const i = scene.elements.findIndex(e => e.id === op.elId);
+          if (i >= 0) {
+            scene.elements.splice(i, 1);
+            if (S().sel === op.elId) S().sel = null;
+          }
+          break;
+        }
+        case 'selectElement': {
+          S().sel = op.elId;
+          break;
+        }
       }
     });
     AFX.refreshAll();
@@ -900,11 +1141,13 @@ update(dt){ const c=this.ctx; const g=c.fxCtx; if(!g) return; const s=c.scene.me
     if (intent === 'help') {
       ui.aiMsg(
         '我是 AI 导演助手，能力包括：\n' +
-        '1. 台词气泡 —— 选中角色后说「他这时候很生气」\n' +
-        '2. 动作编排 —— 说「这里需要一点紧张感」，我会给出可一键应用的建议\n' +
-        '3. 逻辑纠错 —— 说「检查一下场景」，检测鱼在天上飞等冲突\n' +
-        '4. 自主功能生成 —— 说「我想加一个下雨的效果」，我会自动编写插件代码并沙盒测试\n' +
-        '5. 场景上下文 —— 说「看看场景」输出画布 JSON 快照\n' +
+        '1. 角色控制 —— 说「让角色向右走」「让他跑起来」「飞起来」直接执行\n' +
+        '2. 场景编辑 —— 说「背景改成蓝色」「时长改为10秒」直接执行\n' +
+        '3. 台词气泡 —— 选中角色后说「他这时候很生气」生成台词\n' +
+        '4. 动作编排 —— 说「这里需要一点紧张感」，给出编排建议\n' +
+        '5. 逻辑纠错 —— 说「检查一下场景」，检测冲突\n' +
+        '6. 自主功能生成 —— 说「我想加一个下雨的效果」，自动编写插件代码\n' +
+        '7. 自由对话 —— 任何问题都能问，配置了大模型时直接理解并执行\n' +
         (this.endpoint.url
           ? '已接入：' + (this.getProvider(this.endpoint.provider) || {}).name + ' / ' + this.endpoint.model
           : '当前为本地模拟大脑（设置里可接入 12 家大模型，含免费额度）')
@@ -924,7 +1167,7 @@ update(dt){ const c=this.ctx; const g=c.fxCtx; if(!g) return; const s=c.scene.me
 
     if (intent === 'feature') {
       const plan = makeFeaturePlan(text);
-      const entry = ui.featureConfirm(plan);   // 返回确认 promise
+      const entry = ui.featureConfirm(plan);
       const ok = await entry;
       if (ok) await generatePluginFlow(text, ui);
       return;
@@ -932,7 +1175,6 @@ update(dt){ const c=this.ctx; const g=c.fxCtx; if(!g) return; const s=c.scene.me
 
     if (intent === 'plan') {
       const plan = makePlan(text);
-      // 若配置了大模型，让文案更自然（失败回退本地文案）
       ui.plan(plan);
       return;
     }
@@ -943,23 +1185,40 @@ update(dt){ const c=this.ctx; const g=c.fxCtx; if(!g) return; const s=c.scene.me
       return;
     }
 
+    if (intent === 'action') {
+      // 先尝试本地快速解析
+      const localOps = makeAction(text);
+      if (localOps) {
+        applyOps(localOps);
+        ui.aiMsg('✅ 已执行：' + text + '\n（' + localOps.length + ' 个操作已应用，点击播放查看效果）');
+        return;
+      }
+      // 本地解析失败 → LLM 自主操作生成
+      const handled = await llmGenerateOps(text, ui);
+      if (!handled) {
+        ui.aiMsg('我没能理解这个指令。试试这样说：\n• 让角色向右走\n• 让他跑起来\n• 背景改成蓝色\n• 添加一个角色');
+      }
+      return;
+    }
+
     if (intent === 'chat') {
       if (text.includes('看看场景') || text.includes('上下文')) {
         ui.aiMsg('当前场景 JSON 快照：\n' + JSON.stringify(ai.contextSnapshot(), null, 1).slice(0, 2400));
         return;
       }
-      const scene = S().scene;
-      const reply = await ai.chat([
-        { role: 'system', content: '你是 AFX 动画工坊的 AI 导演助手，帮助用户编排网页动画场景（角色状态机/植被摇摆/风声/特效插件）。回答保持简洁中文。' },
-        { role: 'user', content: '场景上下文：' + JSON.stringify(ai.contextSnapshot()) + '\n用户说：' + text }
-      ], 250);
-      ui.aiMsg(reply || (
-        '收到！你可以这样指挥我：\n' +
-        '• 「他这时候很生气」→ 生成台词气泡\n' +
-        '• 「这里需要一点紧张感」→ 一键编排建议\n' +
-        '• 「我想加一个下雨的效果」→ 自动生成新功能\n' +
-        '• 「检查一下场景」→ 逻辑纠错'
-      ));
+      // 自由对话：优先用 LLM 生成操作（能执行就执行）
+      const handled = await llmGenerateOps(text, ui);
+      if (!handled) {
+        ui.aiMsg(
+          '收到！你可以这样指挥我：\n' +
+          '• 「让角色向右走」→ 角色自动行走\n' +
+          '• 「让他跑起来」→ 切换为跑动状态\n' +
+          '• 「背景改成蓝色」→ 修改场景背景\n' +
+          '• 「我想加一个下雨的效果」→ 自动生成新功能\n' +
+          '• 「检查一下场景」→ 逻辑纠错'
+        );
+      }
+      return;
     }
   };
 
