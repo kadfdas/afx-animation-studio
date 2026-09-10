@@ -13,6 +13,7 @@ permissions:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
@@ -35,9 +36,21 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # macOS: 先卸载残留的 DMG 卷，避免 hdiutil detach 冲突
+      - name: Cleanup stale DMG mounts (macOS only)
+        if: matrix.os == 'macos-latest'
+        run: |
+          for vol in /Volumes/*; do
+            if [ -d "$vol" ]; then
+              hdiutil detach -force "$vol" 2>/dev/null || true
+            fi
+          done
+
       # electron-builder 原生发布：
       # 自动创建 GitHub Release、上传安装包 + latest.yml（在线更新元数据）
       - name: Build & Publish
         run: npx electron-builder --${{ matrix.target }} ${{ matrix.arch }} --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS CI 上 hdiutil detach 偶发失败，启用重试容错
+          ELECTRON_BUILDER_ALLOW_UNRESOLVED_HDIUTIL: 'true'
